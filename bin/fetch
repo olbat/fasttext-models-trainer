@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+CURL_OPTS="--retry 4 -f -L -s"
+[ $FETCH_USER ] && CURL_OPTS+=" -u ${FETCH_USER}:${FETCH_PASSWORD}"
+
+{ [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 1 ] ; } \
+	&& { echo "usage $0: <url>"; exit 0; }
+
+
+case "${1##*.}" in
+gz|gzip)
+	decompress="gzip -cd"
+	;;
+bz2|bzip2)
+	decompress="bzip2 -cd"
+	;;
+xz)
+	decompress="xz -cd"
+	;;
+*)
+	decompress="tee"
+	;;
+esac
+
+curl $CURL_OPTS "$1" | $decompress
