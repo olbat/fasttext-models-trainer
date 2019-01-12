@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+
+import unicodedata
+import regex  # https://pypi.python.org/pypi/regex/
+
+MIN_SIZE = 5
+
+SPECIAL_CHARS = r"\-'"  # FIXME: French specific
+
+RE_SECTION = regex.compile(r"==+")
+RE_EMPHASIS = regex.compile(r"''+")
+RE_LIST = regex.compile(r"^\p{Zs}*\*\p{Zs}*")
+
+RE_WHITESPACES = regex.compile(r"\p{Zs}+")
+RE_SENTENCE_TERMS = regex.compile(r" *\p{STerm}+ *")
+RE_NON_LETTERS = \
+    regex.compile(r"[^ \n{}\p{{Alphabetic}}]+".format(SPECIAL_CHARS))
+RE_SPACES = regex.compile(r" +")
+
+
+def preprocess(io, min_size=MIN_SIZE, unorm='NFC'):
+    '''
+    Generate sanitized version of wikitext from _io_
+    '''
+    for l in io:
+        s = l.lower()
+
+        s = regex.sub(RE_SECTION, '', s)  # remove section markup
+        s = regex.sub(RE_EMPHASIS, '', s)  # remove emphasized text markup
+        s = regex.sub(RE_LIST, '', s)  # remove list markup
+
+        if not s:
+            next
+
+        s = regex.sub(RE_WHITESPACES, ' ', s)  # unify whitespaces
+        s = regex.sub(RE_SENTENCE_TERMS, '\n', s)  # one sentence per line
+        s = regex.sub(RE_NON_LETTERS, ' ', s)  # strip non-letters/special
+        s = regex.sub(RE_SPACES, ' ', s)  # compact spaces after strip
+
+        if unorm:  # unicode normalization
+            s = unicodedata.normalize(unorm, s)
+
+
+        for l in regex.split(r"\n+", s):
+            if len(l) > min_size:
+                yield l.strip()
+
+
+if __name__ == '__main__':
+    import os
+    import sys
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Preprocess wikitext')
+    parser.add_argument('-m', '--min-text-size',
+        type=int, default=MIN_SIZE, help='Minimum text size')
+    args = parser.parse_args()
+
+    for l in preprocess(sys.stdin, min_size=args.min_text_size):
+        print(l)
