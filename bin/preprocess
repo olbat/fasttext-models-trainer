@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+# setup default values to config variables
+[ ! -e conf/train.env ] || . conf/train.env
+THREADS=${THREADS:-$(nproc)}
+MIN_TEXT_SIZE=${MIN_TEXT_SIZE:-10}
+
+# if needed create a sample of the dataset (input file has to fit in memory)
+# (fix the seed of the PRNG to get the same results at every run)
+[ $DATASET_SAMPLE_SIZE ] \
+&& incmd="shuf -n $DATASET_SAMPLE_SIZE --random-source=/dev/zero" \
+|| incmd="tee"
+
+# run the preprocessing pipeline
+$incmd $1 \
+| python3 -m gensim.scripts.segment_wiki -f /dev/stdin -w $THREADS \
+| scripts/extract-text \
+| scripts/preprocess-text -m $MIN_TEXT_SIZE
