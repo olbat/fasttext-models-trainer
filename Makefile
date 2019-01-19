@@ -3,6 +3,23 @@ FASTTEXT_REVISION=3c4a3ea5f59480377ad82ad39e7b8b4c10d29280
 
 MODELS=$(shell grep -v '^\#' conf/models.csv | cut -d, -f1)
 
+.PHONY: dependencies
+
+
+dependencies: bin/fasttext requirements-installed.txt
+
+bin/fasttext:
+	$(eval tmpdir=$(shell mktemp -d))
+	git clone $(FASTTEXT_REPOSITORY) $(tmpdir)
+	git -C $(tmpdir) reset --hard $(FASTTEXT_REVISION)
+	make -C $(tmpdir)
+	install -m0755 $(tmpdir)/fasttext $@
+	rm -rf $(tmpdir)
+
+requirements-installed.txt: requirements.txt
+	pip3 install -r $<
+	pip3 freeze -r $< | sed -n '/^##/q;p' > $@
+
 resources/datasets/%.txt:
 	$(eval name=$(basename $(notdir $@)))
 	$(eval url=$(shell grep "^$(name)" conf/models.csv | cut -d, -f2))
