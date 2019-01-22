@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+[ $# -ge 2 ] || { echo "usage: $0 <dataset_file> <model_name>"; exit 1; }
+
+# setup default values to config variables
+[ ! -e conf/train.env ] || . conf/train.env
+THREADS=${THREADS:=$(nproc)}
+FASTTEXT_OPTS=${FASTTEXT_OPTS:=--verbose 1}
+WIKIEXTR_OPTS=${WIKIEXTRACTOR_OPTS:=--min_text_length 50}
+FASTTEXT_CMD=${FASTTEXT_CMD:=skipgram}
+
+# launch the learning procedure
+bin/fasttext $FASTTEXT_CMD -thread $THREADS $FASTTEXT_OPTS -input $1 -output $2

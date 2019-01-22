@@ -3,8 +3,11 @@ FASTTEXT_REVISION=3c4a3ea5f59480377ad82ad39e7b8b4c10d29280
 
 MODELS=$(shell grep -v '^\#' conf/models.csv | cut -d, -f1)
 
-.PHONY: dependencies
+.PHONY: train dependencies
 
+
+train: dependencies $(addsuffix .vec, $(addprefix resources/models/, $(MODELS)))
+	@echo "Trained $(MODELS)"
 
 dependencies: bin/fasttext requirements-installed.txt
 
@@ -19,6 +22,10 @@ bin/fasttext:
 requirements-installed.txt: requirements.txt
 	pip3 install -r $<
 	pip3 freeze -r $< | sed -n '/^##/q;p' > $@
+
+resources/models/%.vec: resources/datasets/%.txt
+	mkdir -p resources/models/
+	bin/train $< $(basename $@)
 
 resources/datasets/%.txt:
 	$(eval name=$(basename $(notdir $@)))
